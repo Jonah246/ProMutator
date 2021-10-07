@@ -2,6 +2,10 @@ from .config import WEB3_IPC_PATH, ETHERSCAN_API_KEY
 import web3
 from web3 import Web3
 w3 = Web3(Web3.IPCProvider(WEB3_IPC_PATH, timeout=200))
+
+from web3.middleware import geth_poa_middleware
+w3.middleware_onion.inject(geth_poa_middleware, layer=0)
+
 from etherscan import contracts 
 import json
 import os
