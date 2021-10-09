@@ -1,86 +1,107 @@
-from .config import WEB3_IPC_PATH, ETHERSCAN_API_KEY
+from logging import error, raiseExceptions
+from .etherscan import get_proxy_contract
+from .config import WEB3_IPC_PATH, CHAIN_TYPE, WEB3_TIMEOUT
 import web3
 from web3 import Web3
-w3 = Web3(Web3.IPCProvider(WEB3_IPC_PATH, timeout=200))
+
+
+def initiate_w3():
+    if WEB3_IPC_PATH != '':
+        return Web3(Web3.IPCProvider(WEB3_IPC_PATH, timeout=WEB3_TIMEOUT))
+    else:
+        if CHAIN_TYPE == 'BSC':
+            return Web3(
+                Web3.HTTPProvider(
+                    'https://bsc-dataseed1.ninicoin.io/', request_kwargs={'timeout': WEB3_TIMEOUT}))
+        else:
+            raise Exception('should prvoide rpc endpoint')
+
+
+# w3 = Web3(Web3.IPCProvider(WEB3_IPC_PATH, timeout=200))
+w3 = initiate_w3()
 
 from web3.middleware import geth_poa_middleware
 w3.middleware_onion.inject(geth_poa_middleware, layer=0)
 
-from etherscan import contracts 
-import json
-import os
-import subprocess
-from eth_utils.abi import (
-    collapse_if_tuple,
-)
 import re
-import time
 
 
 target_code_hash = [
 
 ]
 
+
 def check_target_code_hash(address):
-    return True
     adr = w3.toChecksumAddress(address)
     if adr not in adr_ch_dict.keys():
         adr_ch_dict[adr] = get_adr_code_hash(adr).hex()
-    
+
     ch = adr_ch_dict[adr]
     if ch in target_code_hash:
         return True
-    return False    
-
+    return False
 
 
 contract_dict = {}
 adr_ch_dict = {}
+
+
+def set_contract(code_hash, contract):
+    contract_dict[code_hash] = contract
+
+
+def get_contract(code_hash):
+    if code_hash in contract_dict.keys():
+        return contract_dict[code_hash]
+
+
 class Contract():
+    def get_eth_contract(self, address):
+        code_hash = get_adr_code_hash(address)
+        contract = get_contract(code_hash)
+        if contract != None:
+            return w3.eth.contract(abi=contract.abi, address=address)
+
+        try:
+            etherscan_contract = get_proxy_contract(address)
+        except Exception as e:
+            print(e)
+            return None
+
+        if etherscan_contract['abi'] == 'Contract source code not verified':
+            return None
+
+        contract = w3.eth.contract(
+            abi=etherscan_contract['abi'], address=address)
+        set_contract(code_hash, contract)
+        return contract
+
     def __init__(self, contract_address, check_implementation=False):
         # print("contractadr", contract_address)
-        self.contract_address=contract_address
+        self.contract_address = contract_address
+        self.address = contract_address
         self.is_proxy = False
 
-        if check_target_code_hash(contract_address):
-            api = contracts.Contract(address=contract_address, api_key=ETHERSCAN_API_KEY)
-            try:
-                self.source_codes = api.get_sourcecode()
-            except:
-                self.source_codes = []
-                pass
+        self._contract = self.get_eth_contract(
+            w3.toChecksumAddress(contract_address))
+        # self.contract_name = etherscan_contract['contract_name']
+        if self._contract == None:
+            self.abi = 'Contract source code not verified'
+            return
+        self.abi = self._contract.abi
+        # else:
+        #     self.contract_name = 'none'
+        #     self.abi = 'none'
 
-            if len(self.source_codes) > 0:
-                # if self.source_codes[0]['Proxy'] == '1':
-                #     if check_implementation == False:
-                #         self.is_proxy = True
-                #         self.implementation = Contract(w3.toChecksumAddress(self.source_codes[0]['Implementation']), True)
-                    
-                self.contract_name = self.source_codes[0]['ContractName']
-                self.abi = self.source_codes[0]['ABI']
-                if self.abi == 'Contract source code not verified':
-                    self.abi = 'none'
-                else:
-                    self._contract = w3.eth.contract(abi=self.abi, address=contract_address)
-
-            else:
-                self.contract_name = 'none'
-                self.abi = 'none'
-        else:
-            self.contract_name = 'none'
-            self.abi = 'none'
-            
     def decode_input(self, i):
-        if self.is_proxy:
-            return self.implementation.decode_input(i)
-        
-        if self.abi == 'none':
+        if self.abi == 'Contract source code not verified':
             return i
         try:
             return self._contract.decode_function_input(i)
         except Exception as e:
             pass
         return i
+
             
             
 def get_adr_code_hash(address):
