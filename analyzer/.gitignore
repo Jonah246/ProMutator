@@ -1,2 +1,5 @@
-.pyc
-.csv
+*.pyc
+*.csv
+suspicious/*
+entrypoint/*
+

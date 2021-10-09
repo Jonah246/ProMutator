@@ -1,7 +1,7 @@
 from analyzer.utils import Contract, get_code_from_adr
 import pandas as pd
 import os
-df = pd.read_csv('target_tx.csv')
+df = pd.read_csv('target_tx_dup.csv')
 groups = df.groupby('entrypoint')
 
 flag = False

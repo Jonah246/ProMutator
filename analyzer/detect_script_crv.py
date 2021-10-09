@@ -27,11 +27,11 @@ def get_first_ditinct_tx(txs, count):
     return distinct_txs
 
 def found_sig_in_df(df, target_sigs):
-    if 'signature' not in df.columns:
+    if 'signatures' not in df.columns:
         return False
     
     for s in target_sigs:
-        for i in df['signature'].values:
+        for i in df['signatures'].values:
             if i.find(s) > -1:
                 return True
     return False

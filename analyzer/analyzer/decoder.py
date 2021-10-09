@@ -21,7 +21,7 @@ def make_mutate_map(addresses, rates):
 
 def trace_event_by_tx_hash(hash):
     return w3.provider.make_request('debug_traceTransaction', [
-        hash, {'tracer': 'callTracer', 'timeout': '1000000s'}
+        hash, {'tracer': 'callTracer', 'timeout': '5s', 'reexec': '1'}
     ])
 
 def mutate_event(hash):
@@ -38,7 +38,7 @@ def mutate_call_trace(tx_hash, mutate_map, input=''):
     return w3.provider.make_request('debug_mutateTraceTransaction', [
         tx_hash, {
             'tracer': callTracer,
-            'timeout': '60000s',
+            'timeout': '5s',
         },
         mutate_map, input
     ])
@@ -50,7 +50,7 @@ def trace_transaction(tx):
         tx,
         {
             'tracer': callTracer,
-            'timeout': '60000s'
+            'timeout': '5s'
         }
     ])
 
