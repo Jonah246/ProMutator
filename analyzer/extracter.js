@@ -42,6 +42,8 @@
 	    "59e94862", // getEthToTokenOutputPrice(uint256)
 	    "95b68fe7", // getTokenToEthInputPrice(uint256)	    95b68fe7
         "2640f62c",    // getTokenToEthOutputPrice(uint256)    2640f62c    ],
+        "bb7b8b80", // get_virtual_price()
+        "e25aa5fa", // getVirtualPrice
     ],
     targetSignautresFind: [
         false, false, false, false, false, false, false, false,
